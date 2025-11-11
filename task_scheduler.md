@@ -19,8 +19,13 @@ while True:
      if num.isdigit():
          if int(num) == 1:
              print()
-             text = input('Что добавить?: ')
-             s.append(text)
+             text = input('Введите название задачи: ')
+             date = input('Введите дату задачи: ')
+             time = input('Введите время задачи: ')
+             period = list(input('Введите период повторения задачи по дням недели (0 - не повторяем, 1 - повторяем): '))
+             notification = input('Введите время за которое нужно уведомить о задаче: ')
+             task = {'name': text, 'date': date, 'time': time, 'period': period, 'notification': notification} #проверка на корректность данных
+             s.append(task)
              print()
              print("Задача добавлена! ✅")
          elif int(num)  == 2:
@@ -51,7 +56,7 @@ while True:
                  print("Списко пуст! 😟")
              else:
                  for i in range(len(s)):
-                    print(f'{i + 1}. {s[i]}')
+                    print(f'{i + 1}. {s[i]['name']} - {s[i]['time']} {s[i]['date']}. Периодичность: {s[i]['period']} ')
          elif int(num)  == 4:
              print()
              for i in range(len(s)):
