@@ -47,8 +47,6 @@ def new_period_task():
         print()
         days = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс']
         result = [days[k] for k in range(7) if period[k] == '1']
-        if not result:
-            return "❌ Период не задан! Укажите хотя бы один день (например: 0100000)"
         return result
     else:
         return "❌ Длина периода должна равняться 7 и он должен быть числом! Пример: 0101010"
@@ -79,6 +77,11 @@ def append_task( name, date, time, period, notification, success_message='Зад
 
 def add_task(name_prompt='Введите название задачи: ', success_message='Задача добавлена! ✅'):
     name = input(name_prompt)
+    if name == '':
+         print()
+         print('❌ Ошибка. Задача не может быть без названия!')
+         return
+
     date = new_date_task()
     if date.startswith("❌"):
         print(date)
@@ -102,7 +105,7 @@ while True:
      print()
      print_menu()
      print()
-     num = input('Напишите цифру: ')
+     num = input('Напишите цифру: ').strip()
      if num.isdigit():
          if int(num) == 1:
              print()
