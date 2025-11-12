@@ -11,8 +11,8 @@ def print_menu():
     print('0) Выйти из приложения')
 s = []
 
-def new_date_task(promt = 'Введите дату задачи в формате дд.мм.гг: '):
-    date = input(promt)
+def new_date_task(prompt = 'Введите дату задачи в формате дд.мм.гг: '):
+    date = input(prompt)
     if date[0:2].isdigit() and date[3:5].isdigit() and date[6:].isdigit():
         day = int(date[0:2])
         month = int(date[3:5])
@@ -26,8 +26,8 @@ def new_date_task(promt = 'Введите дату задачи в формат�
     else:
         return "❌ Дата должна быть числом! Пример: 01.01.2025"
 
-def new_time_task(promt = 'Введите время задачи в формате чч:мм: '):
-    time = input(promt)
+def new_time_task(prompt = 'Введите время задачи в формате чч:мм: '):
+    time = input(prompt)
     if time[0:2].isdigit() and time[3:].isdigit():
         hour = int(time[0:2])
         minute = int(time[3:])
@@ -45,12 +45,16 @@ def new_period_task():
             if c not in ('0', '1'):
                 return "❌ Ошибка, введите число 1 или 0. Пример: 0101010"
         print()
-        return list(period)
+        days = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс']
+        result = [days[k] for k in range(7) if period[k] == '1']
+        if not result:
+            return "❌ Период не задан! Укажите хотя бы один день (например: 0100000)"
+        return result
     else:
         return "❌ Длина периода должна равняться 7 и он должен быть числом! Пример: 0101010"
 
 def new_notification_task():
-    notification = input('Введите время за которое нужно уведомить о задаче: \n 1) 10 минут \n 2) 30 минут \n 3) 1 час \n 4) 2 часа \n \n Напишите цифру: ')  # тут нужно реализовать
+    notification = input('Введите время за которое нужно уведомить о задаче: \n1) 10 минут \n2) 30 минут \n3) 1 час \n4) 2 часа \n \nНапишите цифру: ')  # тут нужно реализовать
     if notification.isdigit():
         notification = int(notification)
         if notification == 1:
@@ -67,14 +71,14 @@ def new_notification_task():
         return "❌ Ошибка! Нужно ввести число, а не текст!"
 
 
-def append_task(name, date, time, period, notification):
+def append_task( name, date, time, period, notification, success_message='Задача добавлена! ✅'):
     task = {'name': name, 'date': date, 'time': time, 'period': period, 'notification': notification}
     s.append(task)
     print()
-    print("Задача добавлена! ✅")
+    print(success_message)
 
-def add_task(promt='Введите название задачи: '):
-    name = input(promt)
+def add_task(name_prompt='Введите название задачи: ', success_message='Задача добавлена! ✅'):
+    name = input(name_prompt)
     date = new_date_task()
     if date.startswith("❌"):
         print(date)
@@ -91,7 +95,7 @@ def add_task(promt='Введите название задачи: '):
     if notification.startswith("❌"):
         print(notification)
         return
-    append_task(name, date, time, period, notification)
+    append_task(name, date, time, period, notification, success_message=success_message)
 
 
 while True:
@@ -105,93 +109,120 @@ while True:
              add_task() #добавляем новую задачу
          elif int(num)  == 2:
              print()
-             print("Если хотите вернуться назад, введите цифру 0.")
-             j = input("Какую по счету задачу хотите поменять?: ")
-             print()
-             if j.isdigit():
-                 j = int(j)
-                 if 1 <= j <= len(s):
-                     request = input(f"Что именно в задаче желаете изменить? \n1) Дату \n2) Время \n3) Название \n4) Период повторения \n5) Время, через сколько напомнить \n6) Полностью изменить задачу \nВыберите цифру:")
-                     if request == '1':
-                         new_date = new_date_task("Введите новую дату в формате дд.мм.гг: ")
-                         if new_date.startswith("❌"):
-                             print(new_date)
+             if len(s) == 0:
+                 print("Список пуст! 😟")
+             else:
+                 print("Список дел 🤓:")
+                 print()
+                 for i in range(len(s)):
+                    print(f'{i + 1}. {s[i]['name'].capitalize()} - {s[i]['time'][0:2]}:{s[i]['time'][3:]} {s[i]['date'][0:2]}.{s[i]['date'][3:5]}.{s[i]['date'][6:]}. Периодичность: {', '.join(s[i]['period'])}')
+                 print()
+                 print("Если хотите вернуться назад, введите цифру 0.")
+                 j = input("Какую по счету задачу хотите поменять?: ")
+                 print()
+                 if j.isdigit():
+                     j = int(j)
+                     print(f'Вы выбрали задачу: \n \n{j}. {s[j - 1]['name'].capitalize()} - {s[j - 1]['time'][0:2]}:{s[j - 1]['time'][3:]} {s[j - 1]['date'][0:2]}.{s[j - 1]['date'][3:5]}.{s[j - 1]['date'][6:]}. Периодичность: {', '.join(s[j - 1]['period'])}')
+                     print()
+                     if 1 <= j <= len(s):
+                         request = input(f"Что именно в задаче желаете изменить? \n1) Дату \n2) Время \n3) Название \n4) Период повторения \n5) Время, через сколько напомнить \n6) Полностью изменить задачу \n7) Вернуться назад \n \nВыберите цифру: ")
+                         if request == '1':
+                             print()
+                             new_date = new_date_task("Введите новую дату в формате дд.мм.гг: ")
+                             if new_date.startswith("❌"):
+                                 print(new_date)
+                             else:
+                                 s[j - 1]['date'] = new_date
+                                 print()
+                                 print("Дата изменена ✅")
+                         elif request == '2':
+                             print()
+                             new_time = new_time_task("Введите новое время в формате дд.мм.гг: ")
+                             if new_time.startswith("❌"):
+                                 print(new_time)
+                             else:
+                                 s[j - 1]['time'] = new_time
+                                 print()
+                                 print("Время изменено ✅")
+                         elif request == '3':
+                             print()
+                             new_name = input('Введите новое название задачи: ')
+                             s[int(j) - 1]['name'] = new_name
+                             print()
+                             print("Название изменено ✅")
+                         elif request == '4':
+                             print()
+                             new_period = new_period_task()
+                             if isinstance(new_period, str) and new_period.startswith("❌"): #если строка
+                                 print(new_period)
+                             else:
+                                 s[j - 1]['period'] = new_period
+                                 print("Период изменен ✅")
+                         elif request == '5':
+                             print()
+                             new_notification = new_notification_task()
+                             if new_notification.startswith("❌"):
+                                 print(new_notification)
+                             else:
+                                 s[j - 1]['notification'] = new_notification
+                                 print()
+                                 print("Время напоминания изменено ✅")
+                         elif request == '6':
+                             del s[j - 1]
+                             print()
+                             add_task(name_prompt='Введите новое название задачи: ', success_message=f'Задача {j} была изменена! ✅')
+                             print()
+                         elif request == '7':
+                             print()
+                             print("Возвращаемся назад...")
                          else:
-                             s[j - 1]['date'] = new_date
-                             print("Дата изменена ✅")
-                     elif request == '2':
-                         new_time = new_time_task("Введите новое время в формате дд.мм.гг: ")
-                         if new_time.startswith("❌"):
-                             print(new_time)
-                         else:
-                             s[j - 1]['time'] = new_time
-                             print("Время изменено ✅")
-                     elif request == '3':
-                         new_name = input('Введите новое название задачи: ')
-                         s[int(j) - 1]['name'] = new_name
-                         print("Название изменено ✅")
-                     elif request == '4':
-                         new_period = new_period_task()
-                         if new_period.startswith("❌"):
-                             print(new_period)
-                         else:
-                             s[j - 1]['period'] = new_period
-                             print("Период изменен ✅")
-                     elif request == '5':
-                         new_notification = new_notification_task()
-                         if new_notification.startswith("❌"):
-                             print(new_notification)
-                         else:
-                             s[j - 1]['notification'] = new_notification
-                             print("Время напоминания изменено ✅")
-                     elif request == '6':
-                         del s[j - 1]
+                             print()
+                             print("Такого варианта ответа не существует, попробуйте снова! ❌")
+                     elif int(j) == 0:
+                         print("Возвращаемся назад...")
+                     else:
                          print()
-                         add_task()
-                         print()
-                         print(f"Задача {j} была изменена! ✅")
-
-                 elif int(j) == 0:
-                     print("Возвращаемся назад...")
+                         print("Такая задача не существует! ❌")
                  else:
                      print()
-                     print("Такая задача не существует! ❌")
-             else:
-                 print()
-                 print("Ошибка! Нужно ввести число, а не текст! ❌")
+                     print("Ошибка! Нужно ввести число, а не текст! ❌")
 
          elif int(num) == 3:
              print()
-             print("Список дел 🤓:")
              if len(s) == 0:
-                 print()
-                 print("Списко пуст! 😟")
+                 print("Список пуст! 😟")
              else:
+                 print("Список дел 🤓:")
                  for i in range(len(s)):
-                    print(f'{i + 1}. {s[i]['name']} - {s[i]['time']} {s[i]['date']}. Периодичность: {s[i]['period']} ')
+                    print(f'{i + 1}. {s[i]['name'].capitalize()} - {s[i]['time'][0:2]}:{s[i]['time'][3:]} {s[i]['date'][0:2]}.{s[i]['date'][3:5]}.{s[i]['date'][6:]}. Периодичность: {', '.join(s[i]['period'])}')
          elif int(num)  == 4:
              print()
-             for i in range(len(s)):
-                 print(f'{i + 1}. {s[i]}')
-             print()
-             print("Если хотите вернуться назад, введите цифру 0.")
-             del_text = input("Какую задачу из списка хотите удалить?: ")
-             if del_text.isdigit():
-                if 1 <= int(del_text) <= len(s):
-                    del s[int(del_text) - 1]
-                    print()
-                    print("Задача удалена! ✅")
-                elif int(del_text) == 0:
-                    print()
-                    print("Возвращаемся назад...")
-                else:
-                    print("Такая задача не существует! ❌")
+             if len(s) == 0:
+                 print("Список уже пуст! 😟")
              else:
+                 print("Список дел 🤓:")
+                 for i in range(len(s)):
+                     print(
+                         f'{i + 1}. {s[i]['name'].capitalize()} - {s[i]['time'][0:2]}:{s[i]['time'][3:]} {s[i]['date'][0:2]}.{s[i]['date'][3:5]}.{s[i]['date'][6:]}. Периодичность: {', '.join(s[i]['period'])}')
                  print()
-                 print("Ошибка! Нужно ввести число, а не текст! ❌")
+                 print("Если хотите вернуться назад, введите цифру 0.")
+                 del_text = input("Какую задачу из списка хотите удалить?: ")
+                 if del_text.isdigit():
+                    if 1 <= int(del_text) <= len(s):
+                        del s[int(del_text) - 1]
+                        print()
+                        print("Задача удалена! ✅")
+                    elif int(del_text) == 0:
+                        print()
+                        print("Возвращаемся назад...")
+                    else:
+                        print("Такая задача не существует! ❌")
+                 else:
+                     print()
+                     print("Ошибка! Нужно ввести число, а не текст! ❌")
          elif int(num)  == 5:
              print()
-             clear_s = input("Вы уверены что хотите полностью очистить список? \n 1) Да \n 2) Вернуться назад \n \nВаш ответ: " )
+             clear_s = input("Вы уверены что хотите полностью очистить список? \n1) Да \n2) Вернуться назад \n \nВаш ответ: " )
              print()
              if clear_s == "1":
                  if len(s) >= 1:
@@ -199,8 +230,10 @@ while True:
                      print('Список был очищен! ✅')
                  else:
                      print("Список уже пуст! 👌")
-             else:
+             elif clear_s == "2":
                  print("Возвращаемся назад...")
+             else:
+                 print('Нет такого варианта ответа! ❌')
          elif int(num)  == 0:
              print()
              print("До свидания! 👋")
