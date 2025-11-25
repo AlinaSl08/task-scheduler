@@ -87,7 +87,8 @@ def append_task( name, date, time_task, period, notification, success_message='�
     s.append(task)
     print()
     s_copy = s.copy()
-    task[notification] = notification_time(task) #нужно сделать чтобы время менялось только в копии, а на выводе оставалось тем же
+    msg = notification_time(task)
+    print(msg) #нужно сделать чтобы время менялось только в копии, а на выводе оставалось тем же
     print()
     print(success_message)
 
@@ -119,8 +120,9 @@ def add_task(name_prompt='Введите название задачи: ', succe
 def notification_time(task):
     if task['notification'] == '10 минут': #тут else возвращает в другой функции, че оно мне подчеркивает
         if int(task['time'][3:]) >= 10:
+            hours = int(task["time"][0:2])
             minutes = int(task['time'][3:]) - 10
-            time_notification = f'{task['time'][0:2]}:{minutes:02d}'
+            time_notification = f'{hours:02d}:{minutes:02d}'
             task['time'] = time_notification
             return 'Напоминание установлено!'
         elif int(task['time'][3:]) < 10:
@@ -131,32 +133,36 @@ def notification_time(task):
                 month = int(task['date'][3:5])
                 new_day_date = ''
                 if day == 1: #дата меняется, если время напоминание уходит в прошлый месяц
+                    new_month = int(task["date"][3:5])
                     if month == 11:
-                        new_day_date = f'31.{int(task['date'][3:5]) - 1}.{int(task['date'][6:])}'
+                        new_day_date = f'31.{new_month - 1:02d}.{int(task["date"][6:])}'
                     elif month in [10, 12]:
-                        new_day_date = f'30.{int(task['date'][3:5]) - 1}.{int(task['date'][6:])}'
+                        new_day_date = f'30.{new_month - 1:02d}.{int(task["date"][6:])}'
                     elif month == 3:
-                        new_day_date = f'28.{int(task['date'][3:5]) - 1}.{int(task['date'][6:])}'
+                        new_day_date = f'28.{new_month - 1:02d}.{int(task["date"][6:])}'
                     elif month == 1:
-                        new_day_date = f'31.12.{int(task['date'][6:]) - 1}'
+                        new_day_date = f'31.12.{int(task["date"][6:]) - 1}'
                     elif month in [2, 4, 6, 8, 9]:
-                        new_day_date = f'31.{int(task['date'][3:4]) - 1}.{int(task['date'][6:])}'
+                        new_day_date = f'31.{new_month - 1:02d}.{int(task["date"][6:])}'
                     elif month in [5, 7]:
-                        new_day_date = f'30.{int(task['date'][3:4]) - 1}.{int(task['date'][6:])}'
+                        new_day_date = f'30.{new_month - 1:02d}.{int(task["date"][6:])}'
 
                 else:
-                    new_day_date = f'{int(task['date'][0:2]) - 1}.{int(task['date'][3:5])}.{int(task['date'][6:])}'
+                    day = int(task["date"][0:2])
+                    month = int(task['date'][3:5])
+                    new_day_date = f'{day - 1:02d}.{month:02d}.{int(task["date"][6:])}'
                 task['date'] = new_day_date
             else:
                 hour = int(task['time'][0:2]) - 1
-            time_notification = f'{hour}:{minutes:02d}'
+            time_notification = f'{hour:02d}:{minutes:02d}'
             task['time'] = time_notification
             return 'Напоминание установлено!'
 
     elif task['notification'] == '30 минут':
         if int(task['time'][3:]) >= 30:
+            hours = int(task["time"][0:2])
             minutes = int(task['time'][3:]) - 30
-            time_notification = f'{task['time'][0:2]}:{minutes:02d}'
+            time_notification = f'{hours:02d}:{minutes:02d}'
             task['time'] = time_notification
             return 'Напоминание установлено!'
         elif int(task['time'][3:]) < 30:
@@ -168,68 +174,71 @@ def notification_time(task):
                 new_day_date = ''
                 if day == 1: #дата меняется, если время напоминание уходит в прошлый месяц
                     if month == 11 :
-                        new_day_date = f'31.{int(task['date'][3:5]) - 1}.{int(task['date'][6:])}'
+                        new_day_date = f'31.{month- 1:02d}.{int(task["date"][6:])}'
                     elif month in [10, 12]:
-                        new_day_date = f'30.{int(task['date'][3:5]) - 1}.{int(task['date'][6:])}'
+                        new_day_date = f'30.{month - 1:02d}.{int(task["date"][6:])}'
                     elif month == 3:
-                        new_day_date = f'28.{int(task['date'][3:5]) - 1}.{int(task['date'][6:])}'
+                        new_day_date = f'28.{month - 1:02d}.{int(task["date"][6:])}'
                     elif month == 1:
                         new_day_date = f'31.12.{int(task['date'][6:]) - 1}'
                     elif month in [2, 4, 6, 8, 9]:
-                        new_day_date = f'31.{int(task['date'][3:4]) - 1}.{int(task['date'][6:])}'
+                        new_day_date = f'31.{month - 1:02d}.{int(task["date"][6:])}'
                     elif month in [5, 7]:
-                        new_day_date = f'30.{int(task['date'][3:4]) - 1}.{int(task['date'][6:])}'
+                        new_day_date = f'30.{month - 1:02d}.{int(task["date"][6:])}'
                 else:
-                    new_day_date = f'{int(task['date'][0:2]) - 1}.{int(task['date'][3:5])}.{int(task['date'][6:])}'
+                    day = int(task["date"][0:2])
+                    month = int(task['date'][3:5])
+                    new_day_date = f'{day - 1:02d}.{month:02d}.{int(task["date"][6:])}'
                 task['date'] = new_day_date
-            else:
-                hour = int(task['time'][0:2]) - 1
-            time_notification = f'{task['time'][0:2]}:{minutes:02d}'
+            hours = int(task["time"][0:2])
+            time_notification = f'{hours:02d}:{minutes:02d}'
             task['time'] = time_notification
             return 'Напоминание установлено!'
 
     elif task['notification'] == '1 час':
         if int(task['time'][:2]) > 0:
+            hour = int(task["time"][0:2])
             minutes = int(task['time'][3:])
-            time_notification = f'{task['time'][0:2] - 1}:{minutes:02d}'
+            time_notification = f'{hour - 1:02d}:{minutes:02d}'
             task['time'] = time_notification
             return 'Напоминание установлено!'
         elif int(task['time'][:2]) == 0:
-            minutes = int(task['time'][3:])
             hour = int(task['time'][0:2]) + 23
             day = int(task['date'][0:2])
             month = int(task['date'][3:5])
             new_day_date = ''
             if day == 1: #дата меняется, если время напоминание уходит в прошлый месяц
                 if month == 11:
-                    new_day_date = f'31.{int(task['date'][3:5]) - 1}.{int(task['date'][6:])}'
+                    new_day_date = f'31.{month - 1:02d}.{int(task["date"][6:])}'
                 elif month in [10, 12]:
-                    new_day_date = f'30.{int(task['date'][3:5]) - 1}.{int(task['date'][6:])}'
+                    new_day_date = f'30.{month - 1:02d}.{int(task["date"][6:])}'
                 elif month == 3:
-                    new_day_date = f'28.{int(task['date'][3:5]) - 1}.{int(task['date'][6:])}'
+                    new_day_date = f'28.{month - 1:02d}.{int(task["date"][6:])}'
                 elif month == 1:
-                    new_day_date = f'31.12.{int(task['date'][6:]) - 1}'
+                    new_day_date = f'31.12.{int(task["date"][6:]) - 1}'
                 elif month in [2, 4, 6, 8, 9]:
-                    new_day_date = f'31.{int(task['date'][3:4]) - 1}.{int(task['date'][6:])}'
+                    new_day_date = f'31.{month - 1:02d}.{int(task["date"][6:])}'
                 elif month in [5, 7]:
-                    new_day_date = f'30.{int(task['date'][3:4]) - 1}.{int(task['date'][6:])}'
+                    new_day_date = f'30.{month - 1:02d}.{int(task["date"][6:])}'
             else:
-                new_day_date = f'{int(task['date'][0:2]) - 1}.{int(task['date'][3:5])}.{int(task['date'][6:])}'
+                day = int(task["date"][0:2])
+                new_day_date = f'{day - 1:02d}.{int(task["date"][3:5])}.{int(task["date"][6:])}'
             task['date'] = new_day_date
         else:
             hour = int(task['time'][0:2]) - 1
-        time_notification = f'{hour}:{task['time'][3:]}'
+        minutes = int(task['time'][3:])
+        time_notification = f'{hour:02d}:{minutes:02d}'
         task['time'] = time_notification
         return 'Напоминание установлено!'
 
     elif task['notification'] == '2 часа':
         if int(task['time'][:2]) > 1:
             minutes = int(task['time'][3:])
-            time_notification = f'{task['time'][0:2] - 2}:{minutes}'
+            hour = int(task["time"][0:2])
+            time_notification = f'{hour - 2:02d}:{minutes:02d}'
             task['time'] = time_notification
             return 'Напоминание установлено!'
         elif int(task['time'][:2]) <= 1:
-            minutes = int(task['time'][3:])
             hour = 0
             if int(task['time'][:2]) == 1:
                 hour = 23
@@ -240,23 +249,25 @@ def notification_time(task):
             new_day_date = ''
             if day == 1:  # дата меняется, если время напоминание уходит в прошлый месяц
                 if month == 11:
-                    new_day_date = f'31.{int(task['date'][3:5]) - 1}.{int(task['date'][6:])}'
+                    new_day_date = f'31.{month - 1:02d}.{int(task["date"][6:])}'
                 elif month in [10, 12]:
-                    new_day_date = f'30.{int(task['date'][3:5]) - 1}.{int(task['date'][6:])}'
+                    new_day_date = f'30.{month - 1:02d}.{int(task["date"][6:])}'
                 elif month == 3:
-                    new_day_date = f'28.{int(task['date'][3:5]) - 1}.{int(task['date'][6:])}'
+                    new_day_date = f'28.{month - 1:02d}.{int(task["date"][6:])}'
                 elif month == 1:
-                    new_day_date = f'31.12.{int(task['date'][6:]) - 1}'
+                    new_day_date = f'31.12.{int(task["date"][6:]) - 1}'
                 elif month in [2, 4, 6, 8, 9]:
-                    new_day_date = f'31.{int(task['date'][3:4]) - 1}.{int(task['date'][6:])}'
+                    new_day_date = f'31.{month - 1:02d}.{int(task["date"][6:])}'
                 elif month in [5, 7]:
-                    new_day_date = f'30.{int(task['date'][3:4]) - 1}.{int(task['date'][6:])}'
+                    new_day_date = f'30.{month - 1:02d}.{int(task["date"][6:])}'
             else:
-                new_day_date = f'{int(task['date'][0:2]) - 1}.{int(task['date'][3:5])}.{int(task['date'][6:])}'
+                day = int(task["date"][0:2])
+                new_day_date = f'{day - 1:02d}.{int(task["date"][3:5])}.{int(task["date"][6:])}'
             task['date'] = new_day_date
         else:
             hour = int(task['time'][0:2]) - 2
-        time_notification = f'{hour}:{task['time'][3:]}'
+        minutes = int(task['time'][3:])
+        time_notification = f'{hour:02d}:{minutes:02d}'
         task['time'] = time_notification
         return 'Напоминание установлено!'
 
@@ -264,7 +275,6 @@ def notification_time(task):
 
 flag = 'not_sort'
 while True:
-
     while True:
         if flag == 'not_sort':
             print()
@@ -287,9 +297,7 @@ while True:
             s = sorted(s, key=lambda x: (int(x['date'][6:]), int(x['date'][3:5]), int(x['date'][0:2]),
                                          int(x['time'][0:2]), int(x['time'][3:])))
             break
-    print()
     print_menu()
-    print()
     num = input('Напишите цифру: ').strip()
     if num.isdigit():
         if int(num) == 1:
@@ -346,6 +354,9 @@ while True:
                                 print(new_period)
                             else:
                                 s[j - 1]['period'] = new_period
+
+                                #сделать тут чтобы если менялся период, сначала менялось старое время(из оригинала) потом применялся новый период
+
                                 print("Период изменен ✅")
                         elif request == '5':
                             print()
@@ -448,4 +459,5 @@ while True:
 
     #schedule.run_pending()
     #time.sleep(1)
+
 ```
