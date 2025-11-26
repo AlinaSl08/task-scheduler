@@ -157,6 +157,7 @@ def notification_time(task):
             time_notification = f'{hour:02d}:{minutes:02d}'
             task['time'] = time_notification
             return 'Напоминание установлено!'
+        return None
 
     elif task['notification'] == '30 минут':
         if int(task['time'][3:]) >= 30:
@@ -194,6 +195,7 @@ def notification_time(task):
             time_notification = f'{hours:02d}:{minutes:02d}'
             task['time'] = time_notification
             return 'Напоминание установлено!'
+        return None
 
     elif task['notification'] == '1 час':
         if int(task['time'][:2]) > 0:
@@ -270,7 +272,7 @@ def notification_time(task):
         time_notification = f'{hour:02d}:{minutes:02d}'
         task['time'] = time_notification
         return 'Напоминание установлено!'
-
+    return None
 
 
 flag = 'not_sort'
@@ -459,5 +461,4 @@ while True:
 
     #schedule.run_pending()
     #time.sleep(1)
-
 ```
