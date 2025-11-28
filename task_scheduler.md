@@ -1,6 +1,8 @@
 ``` python
 import schedule
 import time
+import asyncio
+
 
 print("Добро пожаловать в планировщик задач! 👋")
 def print_menu():
@@ -14,6 +16,7 @@ def print_menu():
     print('6) Изменить настройки сортировки')
     print('0) Выйти из приложения')
 s = []
+s_copy = []
 
 def send_notification(task):
    print(f"Напоминание о задаче: {task['name']}")
@@ -86,8 +89,9 @@ def append_task( name, date, time_task, period, notification, success_message='�
     task = {'name': name, 'date': date, 'time': time_task, 'period': period, 'notification': notification}
     s.append(task)
     print()
-    s_copy = s.copy()
-    msg = notification_time(task)
+    task_copy = task.copy()
+    msg = notification_time(task_copy)
+    s_copy.append(task_copy)
     print(msg) #нужно сделать чтобы время менялось только в копии, а на выводе оставалось тем же
     print()
     print(success_message)
@@ -274,191 +278,203 @@ def notification_time(task):
         return 'Напоминание установлено!'
     return None
 
-
-flag = 'not_sort'
-while True:
+async def scheduler(): #запускает проверку уведомлений
     while True:
-        if flag == 'not_sort':
-            print()
-            question = input(
-                'Сортировать в дальнейшем список дел по дате и времени? \n1) Да \n2) Нет \n \nВведите цифру: ').strip()
-            if question == '1':
-                flag = 'sort'
+        schedule.run_pending()
+        time.sleep(1)
+
+
+def send_notification():
+    print('Уведомление')
+
+schedule.every().friday.at('13:43').do(send_notification)
+
+async def main():
+    asyncio.create_task(scheduler())
+    flag = 'not_sort'
+    while True:
+        while True:
+            if flag == 'not_sort':
                 print()
-                print('Список ваших задач будет сортироваться!')
-                break
-            elif question == '2':
-                flag = 'stop_sort'
-                print()
-                print('Список ваших задач не будет сортироваться!')
-                break
-            else:
-                print()
-                print('❌ Ошибка! Нет такого варианта ответа')
-        if flag == 'sort':
-            s = sorted(s, key=lambda x: (int(x['date'][6:]), int(x['date'][3:5]), int(x['date'][0:2]),
-                                         int(x['time'][0:2]), int(x['time'][3:])))
-            break
-    print_menu()
-    num = input('Напишите цифру: ').strip()
-    if num.isdigit():
-        if int(num) == 1:
-            print()
-            add_task() #добавляем новую задачу
-        elif int(num)  == 2:
-            print()
-            if len(s) == 0:
-                print("Список пуст! 😟")
-            else:
-                print("Список дел 🤓:")
-                print()
-                for i in range(len(s)):
-                    print(f'{i + 1}. {s[i]['name'].capitalize()} - {s[i]['date'][0:2]}.{s[i]['date'][3:5]}.{s[i]['date'][6:]} {s[i]['time'][0:2]}:{s[i]['time'][3:]}. Периодичность: {', '.join(s[i]['period'])}')
-                print()
-                print("Если хотите вернуться назад, введите цифру 0.")
-                j = input("Какую по счету задачу хотите поменять?: ").strip()
-                print()
-                if j.isdigit():
-                    j = int(j)
-                    print(f'Вы выбрали задачу: \n \n{j}. {s[j - 1]['name'].capitalize()} - {s[j - 1]['date'][0:2]}.{s[j - 1]['date'][3:5]}.{s[j - 1]['date'][6:]} {s[j - 1]['time'][0:2]}:{s[j - 1]['time'][3:]}. Периодичность: {', '.join(s[j - 1]['period'])}')
+                question = input(
+                    'Сортировать в дальнейшем список дел по дате и времени? \n1) Да \n2) Нет \n \nВведите цифру: ').strip()
+                if question == '1':
+                    flag = 'sort'
                     print()
-                    if 1 <= j <= len(s):
-                        request = input(f"Что именно в задаче желаете изменить? \n1) Дату \n2) Время \n3) Название \n4) Период повторения \n5) Время, через сколько напомнить \n6) Полностью изменить задачу \n7) Вернуться назад \n \nВыберите цифру: ").strip()
-                        if request == '1':
-                            print()
-                            new_date = new_date_task("Введите новую дату в формате дд.мм.гг: ")
-                            if new_date.startswith("❌"):
-                                print(new_date)
-                            else:
-                                s[j - 1]['date'] = new_date
+                    print('Список ваших задач будет сортироваться!')
+                    break
+                elif question == '2':
+                    flag = 'stop_sort'
+                    print()
+                    print('Список ваших задач не будет сортироваться!')
+                    break
+                else:
+                    print()
+                    print('❌ Ошибка! Нет такого варианта ответа')
+            if flag == 'sort':
+                s = sorted(s, key=lambda x: (int(x['date'][6:]), int(x['date'][3:5]), int(x['date'][0:2]),
+                                             int(x['time'][0:2]), int(x['time'][3:])))
+                break
+        print_menu()
+        print()
+        num = input('Напишите цифру: ').strip()
+        if num.isdigit():
+            if int(num) == 1:
+                print()
+                add_task() #добавляем новую задачу
+            elif int(num)  == 2:
+                print()
+                if len(s) == 0:
+                    print("Список пуст! 😟")
+                else:
+                    print("Список дел 🤓:")
+                    print()
+                    for i in range(len(s)):
+                        print(f'{i + 1}. {s[i]['name'].capitalize()} - {s[i]['date'][0:2]}.{s[i]['date'][3:5]}.{s[i]['date'][6:]} {s[i]['time'][0:2]}:{s[i]['time'][3:]}. Периодичность: {', '.join(s[i]['period'])}')
+                    print()
+                    print("Если хотите вернуться назад, введите цифру 0.")
+                    j = input("Какую по счету задачу хотите поменять?: ").strip()
+                    print()
+                    if j.isdigit():
+                        j = int(j)
+                        print(f'Вы выбрали задачу: \n \n{j}. {s[j - 1]['name'].capitalize()} - {s[j - 1]['date'][0:2]}.{s[j - 1]['date'][3:5]}.{s[j - 1]['date'][6:]} {s[j - 1]['time'][0:2]}:{s[j - 1]['time'][3:]}. Периодичность: {', '.join(s[j - 1]['period'])}')
+                        print()
+                        if 1 <= j <= len(s):
+                            request = input(f"Что именно в задаче желаете изменить? \n1) Дату \n2) Время \n3) Название \n4) Период повторения \n5) Время, через сколько напомнить \n6) Полностью изменить задачу \n7) Вернуться назад \n \nВыберите цифру: ").strip()
+                            if request == '1':
                                 print()
-                                print("Дата изменена ✅")
-                        elif request == '2':
-                            print()
-                            new_time = new_time_task("Введите новое время в формате дд.мм.гг: ")
-                            if new_time.startswith("❌"):
-                                print(new_time)
-                            else:
-                                s[j - 1]['time'] = new_time
-                                new_notification = notification_time(s[j - 1])
+                                new_date = new_date_task("Введите новую дату в формате дд.мм.гг: ")
+                                if new_date.startswith("❌"):
+                                    print(new_date)
+                                else:
+                                    s[j - 1]['date'] = new_date
+                                    print()
+                                    print("Дата изменена ✅")
+                            elif request == '2':
                                 print()
-                                print("Время изменено ✅")
-                        elif request == '3':
-                            print()
-                            new_name = input('Введите новое название задачи: ').strip()
-                            s[int(j) - 1]['name'] = new_name
-                            print()
-                            print("Название изменено ✅")
-                        elif request == '4':
-                            print()
-                            new_period = new_period_task()
-                            if isinstance(new_period, str) and new_period.startswith("❌"): #если строка
-                                print(new_period)
-                            else:
-                                s[j - 1]['period'] = new_period
+                                new_time = new_time_task("Введите новое время в формате дд.мм.гг: ")
+                                if new_time.startswith("❌"):
+                                    print(new_time)
+                                else:
+                                    s[j - 1]['time'] = new_time
+                                    new_notification = notification_time(s[j - 1])
+                                    print()
+                                    print("Время изменено ✅")
+                            elif request == '3':
+                                print()
+                                new_name = input('Введите новое название задачи: ').strip()
+                                s[int(j) - 1]['name'] = new_name
+                                print()
+                                print("Название изменено ✅")
+                            elif request == '4':
+                                print()
+                                new_period = new_period_task()
+                                if isinstance(new_period, str) and new_period.startswith("❌"): #если строка
+                                    print(new_period)
+                                else:
+                                    s[j - 1]['period'] = new_period
 
-                                #сделать тут чтобы если менялся период, сначала менялось старое время(из оригинала) потом применялся новый период
+                                    #сделать тут чтобы если менялся период, сначала менялось старое время(из оригинала) потом применялся новый период
 
-                                print("Период изменен ✅")
-                        elif request == '5':
-                            print()
-                            new_notification = new_notification_task()
-                            if new_notification.startswith("❌"):
-                                print(new_notification)
-                            else:
-                                s[j - 1]['notification'] = new_notification
+                                    print("Период изменен ✅")
+                            elif request == '5':
                                 print()
-                                print("Время напоминания изменено ✅")
-                        elif request == '6':
-                            del s[j - 1]
-                            print()
-                            add_task(name_prompt='Введите новое название задачи: ', success_message=f'Задача {j} была изменена! ✅')
-                            print()
-                        elif request == '7':
-                            print()
+                                new_notification = new_notification_task()
+                                if new_notification.startswith("❌"):
+                                    print(new_notification)
+                                else:
+                                    s[j - 1]['notification'] = new_notification
+                                    print()
+                                    print("Время напоминания изменено ✅")
+                            elif request == '6':
+                                del s[j - 1]
+                                print()
+                                add_task(name_prompt='Введите новое название задачи: ', success_message=f'Задача {j} была изменена! ✅')
+                                print()
+                            elif request == '7':
+                                print()
+                                print("Возвращаемся назад...")
+                            else:
+                                print()
+                                print("Такого варианта ответа не существует, попробуйте снова! ❌")
+                        elif int(j) == 0:
                             print("Возвращаемся назад...")
                         else:
                             print()
-                            print("Такого варианта ответа не существует, попробуйте снова! ❌")
-                    elif int(j) == 0:
-                        print("Возвращаемся назад...")
+                            print("Такая задача не существует! ❌")
                     else:
                         print()
-                        print("Такая задача не существует! ❌")
-                else:
-                    print()
-                    print("Ошибка! Нужно ввести число, а не текст! ❌")
+                        print("Ошибка! Нужно ввести число, а не текст! ❌")
 
-        elif int(num) == 3:
-            print()
-            if len(s) == 0:
-                print("Список пуст! 😟")
-            else:
-                print("Список дел 🤓:")
-                for i in range(len(s)):
-                    print(f'{i + 1}. {s[i]['name'].capitalize()} - {s[i]['date'][0:2]}.{s[i]['date'][3:5]}.{s[i]['date'][6:]} {s[i]['time'][0:2]}:{s[i]['time'][3:]}. Периодичность: {', '.join(s[i]['period'])}')
-        elif int(num)  == 4:
-            print()
-            if len(s) == 0:
-                print("Список уже пуст! 😟")
-            else:
-                print("Список дел 🤓:")
-                for i in range(len(s)):
-                    print(f'{i + 1}. {s[i]['name'].capitalize()} - {s[i]['date'][0:2]}.{s[i]['date'][3:5]}.{s[i]['date'][6:]} {s[i]['time'][0:2]}:{s[i]['time'][3:]}. Периодичность: {', '.join(s[i]['period'])}')
+            elif int(num) == 3:
                 print()
-                print("Если хотите вернуться назад, введите цифру 0.")
-                del_text = input("Какую задачу из списка хотите удалить?: ").strip()
-                if del_text.isdigit():
-                    if 1 <= int(del_text) <= len(s):
-                        del s[int(del_text) - 1]
-                        print()
-                        print("Задача удалена! ✅")
-                    elif int(del_text) == 0:
-                        print()
-                        print("Возвращаемся назад...")
-                    else:
-                        print("Такая задача не существует! ❌")
+                if len(s) == 0:
+                    print("Список пуст! 😟")
                 else:
+                    print("Список дел 🤓:")
+                    for i in range(len(s)):
+                        print(f'{i + 1}. {s[i]['name'].capitalize()} - {s[i]['date'][0:2]}.{s[i]['date'][3:5]}.{s[i]['date'][6:]} {s[i]['time'][0:2]}:{s[i]['time'][3:]}. Периодичность: {', '.join(s[i]['period'])}')
+            elif int(num)  == 4:
+                print()
+                if len(s) == 0:
+                    print("Список уже пуст! 😟")
+                else:
+                    print("Список дел 🤓:")
+                    for i in range(len(s)):
+                        print(f'{i + 1}. {s[i]['name'].capitalize()} - {s[i]['date'][0:2]}.{s[i]['date'][3:5]}.{s[i]['date'][6:]} {s[i]['time'][0:2]}:{s[i]['time'][3:]}. Периодичность: {', '.join(s[i]['period'])}')
                     print()
-                    print("Ошибка! Нужно ввести число, а не текст! ❌")
-        elif int(num)  == 5:
-            print()
-            clear_s = input("Вы уверены что хотите полностью очистить список? \n1) Да \n2) Вернуться назад \n \nВаш ответ: " ).strip()
-            print()
-            if clear_s == "1":
-                if len(s) >= 1:
-                    s.clear()
-                    print('Список был очищен! ✅')
+                    print("Если хотите вернуться назад, введите цифру 0.")
+                    del_text = input("Какую задачу из списка хотите удалить?: ").strip()
+                    if del_text.isdigit():
+                        if 1 <= int(del_text) <= len(s):
+                            del s[int(del_text) - 1]
+                            print()
+                            print("Задача удалена! ✅")
+                        elif int(del_text) == 0:
+                            print()
+                            print("Возвращаемся назад...")
+                        else:
+                            print("Такая задача не существует! ❌")
+                    else:
+                        print()
+                        print("Ошибка! Нужно ввести число, а не текст! ❌")
+            elif int(num)  == 5:
+                print()
+                clear_s = input("Вы уверены что хотите полностью очистить список? \n1) Да \n2) Вернуться назад \n \nВаш ответ: " ).strip()
+                print()
+                if clear_s == "1":
+                    if len(s) >= 1:
+                        s.clear()
+                        print('Список был очищен! ✅')
+                    else:
+                        print("Список уже пуст! 👌")
+                elif clear_s == "2":
+                    print("Возвращаемся назад...")
                 else:
-                    print("Список уже пуст! 👌")
-            elif clear_s == "2":
-                print("Возвращаемся назад...")
+                    print('Нет такого варианта ответа! ❌')
+            elif int(num) == 6:
+                question = input('Сортировать в дальнейшем список дел по дате и времени? \n1) Да \n2) Нет \n \nВведите цифру: ').strip()
+                if question == '1':
+                    flag = 'sort'
+                elif question == '2':
+                    flag = 'stop_sort'
+            elif int(num)  == 0:
+                print()
+                print("До свидания! 👋")
+                break
             else:
-                print('Нет такого варианта ответа! ❌')
-        elif int(num) == 6:
-            question = input('Сортировать в дальнейшем список дел по дате и времени? \n1) Да \n2) Нет \n \nВведите цифру: ').strip()
-            if question == '1':
-                flag = 'sort'
-            elif question == '2':
-                flag = 'stop_sort'
-        elif int(num)  == 0:
-            print()
-            print("До свидания! 👋")
-            break
+                print()
+                print("Команда не существует ❌")
         else:
             print()
-            print("Команда не существует ❌")
-    else:
-        print()
-        print("Ошибка! Нужно ввести число, а не текст! ❌")
-    for i in range(len(s)):
-        for day_notification in s[i]['period']:
-            if day_notification == 'пн':
-                print('')
+            print("Ошибка! Нужно ввести число, а не текст! ❌")
+        for i in range(len(s)):
+            for day_notification in s[i]['period']:
+                if day_notification == 'пн':
+                    print('')
 
 
-            #schedule.every().monday.at('10:30').do(send_notification)
+                #schedule.every().monday.at('10:30').do(send_notification)
 
-    #schedule.run_pending()
-    #time.sleep(1)
+asyncio.run(main())
 ```
