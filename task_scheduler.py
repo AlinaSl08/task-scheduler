@@ -1,4 +1,4 @@
-``` python
+
 import schedule
 import time
 import asyncio
@@ -505,4 +505,4 @@ async def main():
 
 
 asyncio.run(main())
-```
+
