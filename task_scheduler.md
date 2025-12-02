@@ -2,6 +2,8 @@
 import schedule
 import time
 import asyncio
+import datetime
+
 
 
 print("Добро пожаловать в планировщик задач! 👋")
@@ -18,10 +20,9 @@ def print_menu():
 s = []
 s_copy = []
 
-def send_notification(task):
-   print(f"Напоминание о задаче: {task['name']}")
 
-#schedule.every().monday.at('10:30').do(send_notification)
+
+
 
 
 def new_date_task(prompt = 'Введите дату задачи в формате дд.мм.гг: '):
@@ -84,6 +85,37 @@ def new_notification_task():
     else:
         return "❌ Ошибка! Нужно ввести число, а не текст!"
 
+async def get_name(name):
+    print(f'Уведомление о задаче: {name}')
+
+async def make_job(t):
+    return lambda: get_name(t['name'])
+
+def add_notification(task):
+    day, month, year = map(int, task['date'].split('.'))
+    task_date = datetime.date(year, month, day)
+    today = datetime.date.today()
+    if task_date == today:
+        await schedule.every().day.at(task['time']).do(make_job(task))
+    else:
+        weekday = task_date.weekday()
+        period = task['period']
+        if period[weekday] == '1':
+            if weekday == 0:
+                schedule.every().monday.at(task['time']).do(make_job(task))
+            elif weekday == 1:
+                schedule.every().tuesday.at(task['time']).do(make_job(task))
+            elif weekday == 2:
+                schedule.every().wednesday.at(task['time']).do(make_job(task))
+            elif weekday == 3:
+                schedule.every().thursday.at(task['time']).do(make_job(task))
+            elif weekday == 4:
+                schedule.every().friday.at(task['time']).do(make_job(task))
+            elif weekday == 5:
+                schedule.every().saturday.at(task['time']).do(make_job(task))
+            elif weekday == 6:
+                schedule.every().sunday.at(task['time']).do(make_job(task))
+
 
 def append_task( name, date, time_task, period, notification, success_message='Задача добавлена! ✅'):
     task = {'name': name, 'date': date, 'time': time_task, 'period': period, 'notification': notification}
@@ -95,6 +127,11 @@ def append_task( name, date, time_task, period, notification, success_message='�
     print(msg) #нужно сделать чтобы время менялось только в копии, а на выводе оставалось тем же
     print()
     print(success_message)
+    add_notification(task)
+    add_notification(task_copy)
+
+
+
 
 def add_task(name_prompt='Введите название задачи: ', success_message='Задача добавлена! ✅'):
     name = input(name_prompt).strip()
@@ -102,7 +139,6 @@ def add_task(name_prompt='Введите название задачи: ', succe
          print()
          print('❌ Ошибка. Задача не может быть без названия!')
          return
-
     date = new_date_task()
     if date.startswith("❌"):
         print(date)
@@ -120,6 +156,7 @@ def add_task(name_prompt='Введите название задачи: ', succe
         print(notification)
         return
     append_task(name, date, time_task, period, notification, success_message=success_message)
+
 
 def notification_time(task):
     if task['notification'] == '10 минут': #тут else возвращает в другой функции, че оно мне подчеркивает
@@ -284,10 +321,7 @@ async def scheduler(): #запускает проверку уведомлени
         time.sleep(1)
 
 
-def send_notification():
-    print('Уведомление')
 
-schedule.every().friday.at('13:43').do(send_notification)
 
 async def main():
     asyncio.create_task(scheduler())
@@ -468,13 +502,7 @@ async def main():
         else:
             print()
             print("Ошибка! Нужно ввести число, а не текст! ❌")
-        for i in range(len(s)):
-            for day_notification in s[i]['period']:
-                if day_notification == 'пн':
-                    print('')
 
-
-                #schedule.every().monday.at('10:30').do(send_notification)
 
 asyncio.run(main())
 ```
