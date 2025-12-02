@@ -1,9 +1,7 @@
-
 import schedule
 import time
 import asyncio
 import datetime
-
 
 
 print("Добро пожаловать в планировщик задач! 👋")
@@ -19,9 +17,6 @@ def print_menu():
     print('0) Выйти из приложения')
 s = []
 s_copy = []
-
-
-
 
 
 
@@ -84,37 +79,39 @@ def new_notification_task():
             return "❌ Ошибка! Такой цифры не существует!"
     else:
         return "❌ Ошибка! Нужно ввести число, а не текст!"
-
+check = 0
 async def get_name(name):
+    global check
+    check = 1
     print(f'Уведомление о задаче: {name}')
 
-async def make_job(t):
-    return lambda: get_name(t['name'])
+def make_job(t):
+    return lambda: asyncio.create_task(get_name(t['name']))
 
 def add_notification(task):
     day, month, year = map(int, task['date'].split('.'))
     task_date = datetime.date(year, month, day)
     today = datetime.date.today()
+
+    def job():
+        asyncio.create_task(get_name(task['name']))
+
     if task_date == today:
-        await schedule.every().day.at(task['time']).do(make_job(task))
+        schedule.every().day.at(task['time']).do(job)
     else:
         weekday = task_date.weekday()
         period = task['period']
         if period[weekday] == '1':
-            if weekday == 0:
-                schedule.every().monday.at(task['time']).do(make_job(task))
-            elif weekday == 1:
-                schedule.every().tuesday.at(task['time']).do(make_job(task))
-            elif weekday == 2:
-                schedule.every().wednesday.at(task['time']).do(make_job(task))
-            elif weekday == 3:
-                schedule.every().thursday.at(task['time']).do(make_job(task))
-            elif weekday == 4:
-                schedule.every().friday.at(task['time']).do(make_job(task))
-            elif weekday == 5:
-                schedule.every().saturday.at(task['time']).do(make_job(task))
-            elif weekday == 6:
-                schedule.every().sunday.at(task['time']).do(make_job(task))
+            weekdays_map = {
+                0: schedule.every().monday,
+                1: schedule.every().tuesday,
+                2: schedule.every().wednesday,
+                3: schedule.every().thursday,
+                4: schedule.every().friday,
+                5: schedule.every().saturday,
+                6: schedule.every().sunday,
+            }
+            weekdays_map[weekday]().at(task['time']).do(job)
 
 
 def append_task( name, date, time_task, period, notification, success_message='Задача добавлена! ✅'):
@@ -318,12 +315,14 @@ def notification_time(task):
 async def scheduler(): #запускает проверку уведомлений
     while True:
         schedule.run_pending()
-        time.sleep(1)
+        await asyncio.sleep(1)
+        #time.sleep(1)
 
 
 
 
 async def main():
+    global s
     asyncio.create_task(scheduler())
     flag = 'not_sort'
     while True:
@@ -363,6 +362,7 @@ async def main():
                 else:
                     print("Список дел 🤓:")
                     print()
+
                     for i in range(len(s)):
                         print(f'{i + 1}. {s[i]['name'].capitalize()} - {s[i]['date'][0:2]}.{s[i]['date'][3:5]}.{s[i]['date'][6:]} {s[i]['time'][0:2]}:{s[i]['time'][3:]}. Периодичность: {', '.join(s[i]['period'])}')
                     print()
@@ -442,6 +442,7 @@ async def main():
 
             elif int(num) == 3:
                 print()
+                print(check)
                 if len(s) == 0:
                     print("Список пуст! 😟")
                 else:
@@ -505,4 +506,3 @@ async def main():
 
 
 asyncio.run(main())
-
