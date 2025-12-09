@@ -1,11 +1,13 @@
 import schedule
 import time
-import asyncio
 import datetime
-
+import threading
+import json
+#еще исправить изменение периода
 
 print("Добро пожаловать в планировщик задач! 👋")
 def print_menu():
+    print()
     print('Меню:')
     print()
     print('1) Добавить задачу')
@@ -19,9 +21,51 @@ s = []
 s_copy = []
 
 
+current_prompt = ""
+current_input = ""     # что ввёл пользователь
+input_active = False  # сейчас ждём ввод или нет
+NOTIFY_BUFFER = []
+file_tasks = 'tasks.json'
+file_tasks_copy = 'tasks_copy.json'
+
+def write_json(file_name, data):
+    with open(file_name, 'w', encoding="utf8") as file:
+        json_items = json.dumps(data)
+        file.write(json_items)
+
+def read_json(file_name):
+    with open(file_name, 'r', encoding="utf8") as file:
+        file_read = file.read()
+        new_json = json.loads(file_read)
+        return new_json
+
+def safe_input(prompt):
+    global current_input, current_prompt, input_active, NOTIFY_BUFFER
+
+    current_input = ""
+    current_prompt = prompt
+    input_active = True
+
+    text = input(prompt)
+
+    # пользователь закончил ввод
+    current_input = text
+    input_active = False
+
+    # если уведомления пришли во время ввода — вывести их строго ПОСЛЕ Enter
+    if NOTIFY_BUFFER:
+        print()
+        for name in NOTIFY_BUFFER:
+            print(f"🔔 Уведомление о задаче: {name}")
+        print()
+        NOTIFY_BUFFER = []  #  очищаем буфер
+
+    return text
 
 def new_date_task(prompt = 'Введите дату задачи в формате дд.мм.гг: '):
-    date = input(prompt).strip()
+    date = safe_input(prompt).strip()
+    for sep in ['/', '-', '\\', ' ', ',']:
+        date = date.replace(sep, '.')
     if date[0:2].isdigit() and date[3:5].isdigit() and date[6:].isdigit():
         day = int(date[0:2])
         month = int(date[3:5])
@@ -36,7 +80,9 @@ def new_date_task(prompt = 'Введите дату задачи в формат
         return "❌ Дата должна быть числом! Пример: 01.01.2025"
 
 def new_time_task(prompt = 'Введите время задачи в формате чч:мм: '):
-    time_task = input(prompt).strip()
+    time_task = safe_input(prompt).strip()
+    for sep in ['.', '-', '/', '\\', ' ', ',']:
+        time_task = time_task.replace(sep, ':')
     if time_task[0:2].isdigit() and time_task[3:].isdigit():
         hour = int(time_task[0:2])
         minute = int(time_task[3:])
@@ -48,15 +94,17 @@ def new_time_task(prompt = 'Введите время задачи в форма
         return "❌ Время должно быть числом! Пример: 07:30"
 
 def new_period_task():
-    period = input('Введите период повторения задачи по дням недели (0 - не повторяем, 1 - повторяем): ').strip()
+    period = safe_input('Введите период повторения задачи по дням недели (0 - не повторяем, 1 - повторяем): ').strip()
+
     if period.isdigit() and len(period) == 7:
         for c in period:
             if c not in ('0', '1'):
                 return "❌ Ошибка, введите число 1 или 0. Пример: 0101010"
         print()
         days = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс']
-        result = [days[k] for k in range(7) if period[k] == '1']
-        if len(result) >= 1:
+        period_day = [days[k] for k in range(7) if period[k] == '1']
+        result = period_day.append(period)
+        if len(period_day) >= 1:
             return result
         else:
             return ['без повторений.']
@@ -64,7 +112,7 @@ def new_period_task():
         return "❌ Длина периода должна равняться 7 и он должен быть числом! Пример: 0101010"
 
 def new_notification_task():
-    notification = input('Введите время за которое нужно уведомить о задаче: \n1) 10 минут \n2) 30 минут \n3) 1 час \n4) 2 часа \n \nНапишите цифру: ').strip()  # тут нужно реализовать
+    notification = safe_input('Введите время за которое нужно уведомить о задаче: \n1) 10 минут \n2) 30 минут \n3) 1 час \n4) 2 часа \n \nНапишите цифру: ').strip()  # тут нужно реализовать
     if notification.isdigit():
         notification = int(notification)
         if notification == 1:
@@ -79,14 +127,18 @@ def new_notification_task():
             return "❌ Ошибка! Такой цифры не существует!"
     else:
         return "❌ Ошибка! Нужно ввести число, а не текст!"
-check = 0
-async def get_name(name):
-    global check
-    check = 1
-    print(f'Уведомление о задаче: {name}')
+
+def get_name(name):
+    global input_active, current_input, current_prompt, NOTIFY_BUFFER
+
+    if input_active:
+        NOTIFY_BUFFER.append(name)
+    else:
+        # можно печатать сразу
+        print(f"\n🔔 Уведомление о задаче: {name}\n")
 
 def make_job(t):
-    return lambda: asyncio.create_task(get_name(t['name']))
+    return lambda: get_name(t['name'])
 
 def add_notification(task):
     day, month, year = map(int, task['date'].split('.'))
@@ -94,13 +146,13 @@ def add_notification(task):
     today = datetime.date.today()
 
     def job():
-        asyncio.create_task(get_name(task['name']))
+        get_name(task['name'])
 
     if task_date == today:
         schedule.every().day.at(task['time']).do(job)
     else:
         weekday = task_date.weekday()
-        period = task['period']
+        period = task['period_raw']
         if period[weekday] == '1':
             weekdays_map = {
                 0: schedule.every().monday,
@@ -111,27 +163,30 @@ def add_notification(task):
                 5: schedule.every().saturday,
                 6: schedule.every().sunday,
             }
-            weekdays_map[weekday]().at(task['time']).do(job)
+            weekdays_map[weekday].at(task['time']).do(job)
 
-
-def append_task( name, date, time_task, period, notification, success_message='Задача добавлена! ✅'):
+def append_task(name, date, time_task, period, notification, success_message='Задача добавлена! ✅'):
     task = {'name': name, 'date': date, 'time': time_task, 'period': period, 'notification': notification}
+    period_raw = ''.join('1' if day in period else '0'
+                         for day in ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'])
+    task['period_raw'] = period_raw
     s.append(task)
+    write_json(file_tasks, s)
     print()
     task_copy = task.copy()
+    period_raw = ''.join('1' if day in period else '0' for day in ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'])
+    task_copy['period_raw'] = period_raw
     msg = notification_time(task_copy)
     s_copy.append(task_copy)
+    write_json(file_tasks_copy, s_copy)
     print(msg) #нужно сделать чтобы время менялось только в копии, а на выводе оставалось тем же
     print()
     print(success_message)
     add_notification(task)
     add_notification(task_copy)
 
-
-
-
 def add_task(name_prompt='Введите название задачи: ', success_message='Задача добавлена! ✅'):
-    name = input(name_prompt).strip()
+    name = safe_input(name_prompt).strip()
     if name == '':
          print()
          print('❌ Ошибка. Задача не может быть без названия!')
@@ -144,7 +199,7 @@ def add_task(name_prompt='Введите название задачи: ', succe
     if time_task.startswith("❌"):
         print(time_task)
         return
-    period = new_period_task()
+    period = new_period_task()[:-1]
     if isinstance(period, str) and period.startswith("❌"):
         print(period)
         return
@@ -154,9 +209,8 @@ def add_task(name_prompt='Введите название задачи: ', succe
         return
     append_task(name, date, time_task, period, notification, success_message=success_message)
 
-
 def notification_time(task):
-    if task['notification'] == '10 минут': #тут else возвращает в другой функции, че оно мне подчеркивает
+    if task['notification'] == '10 минут':
         if int(task['time'][3:]) >= 10:
             hours = int(task["time"][0:2])
             minutes = int(task['time'][3:]) - 10
@@ -312,24 +366,140 @@ def notification_time(task):
         return 'Напоминание установлено!'
     return None
 
-async def scheduler(): #запускает проверку уведомлений
+def schedule_worker():
     while True:
         schedule.run_pending()
-        await asyncio.sleep(1)
-        #time.sleep(1)
+        time.sleep(1)
 
-
-
-
-async def main():
+def change_task():
+    print()
     global s
-    asyncio.create_task(scheduler())
+    global s_copy
+    if len(s) == 0:
+        print("Список пуст! 😟")
+    else:
+        print("Список дел 🤓:")
+        print()
+        for i in range(len(s)):
+            print(
+                f'{i + 1}. {s[i]['name'].capitalize()} - {s[i]['date'][0:2]}.{s[i]['date'][3:5]}.{s[i]['date'][6:]} {s[i]['time'][0:2]}:{s[i]['time'][3:]}. Периодичность: {', '.join(s[i]['period'])}')
+        print()
+        print("Если хотите вернуться назад, введите цифру 0.")
+        j = safe_input("Какую по счету задачу хотите поменять?: ").strip()
+        print()
+        if j.isdigit():
+            j = int(j)
+            print(
+                f'Вы выбрали задачу: \n \n{j}. {s[j - 1]['name'].capitalize()} - {s[j - 1]['date'][0:2]}.{s[j - 1]['date'][3:5]}.{s[j - 1]['date'][6:]} {s[j - 1]['time'][0:2]}:{s[j - 1]['time'][3:]}. Периодичность: {', '.join(s[j - 1]['period'])}')
+            print()
+            if 1 <= j <= len(s):
+                request = safe_input(
+                    f"Что именно в задаче желаете изменить? \n1) Дату \n2) Время \n3) Название \n4) Период повторения \n5) Время, через сколько напомнить \n6) Полностью изменить задачу \n7) Вернуться назад \n \nВыберите цифру: ").strip()
+                if request == '1':
+                    print()
+                    new_date = new_date_task("Введите новую дату в формате дд.мм.гг: ")
+                    if new_date.startswith("❌"):
+                        print(new_date)
+                        return
+                    else:
+                        s[j - 1]['date'] = new_date
+                        s_copy[j - 1]['date'] = new_date
+                        print()
+                        print("Дата изменена ✅")
+                elif request == '2':
+                    print()
+                    new_time = new_time_task("Введите новое время в формате чч:мм: ")
+                    if new_time.startswith("❌"):
+                        print(new_time)
+                        return
+                    else:
+                        s[j - 1]['time'] = new_time
+                        s_copy[j - 1]['time'] = new_time
+                        notification_time(s_copy[j - 1]) #меняет напоминание по новому времени
+                        print()
+                        print("Время изменено ✅")
+                elif request == '3':
+                    print()
+                    new_name = safe_input('Введите новое название задачи: ').strip()
+                    s[int(j) - 1]['name'] = new_name
+                    s_copy[int(j) - 1]['name'] = new_name
+                    print()
+                    print("Название изменено ✅")
+                elif request == '4':
+                    print()
+                    new_period = new_period_task()[:-1]
+                    new_period_raw = new_period_task()[-1]
+                    if isinstance(new_period, str) and new_period.startswith("❌"):  # если строка
+                        print(new_period)
+                        return
+                    else:
+                        s[j - 1]['period'] = new_period
+                        s_copy[j - 1]['period'] = new_period
+                        s[j - 1]['period_raw'] = new_period_raw #тут неправильно записывается переменная, нужно в числах
+                        s_copy[j - 1]['period_raw'] = new_period_raw #тут неправильно записывается переменная, нужно в числах
+
+                        # сделать тут чтобы если менялся период, сначала менялось старое время(из оригинала) потом применялся новый период\ хз зачем, пока пусть висит
+
+
+                        print("Период изменен ✅")
+                elif request == '5':
+                    print()
+                    new_notification = new_notification_task()
+                    if new_notification.startswith("❌"):
+                        print(new_notification)
+                        return
+                    else:
+                        s[j - 1]['notification'] = new_notification
+                        s_copy[j - 1]['notification'] = new_notification
+                        print()
+                        print("Время напоминания изменено ✅")
+                elif request == '6':
+                    del s[j - 1]
+                    del s_copy[j - 1]
+                    print()
+                    add_task(name_prompt='Введите новое название задачи: ',
+                             success_message=f'Задача {j} была изменена! ✅')
+                    print()
+                elif request == '7':
+                    print()
+                    print("Возвращаемся назад...")
+                    return
+                else:
+                    print()
+                    print("Такого варианта ответа не существует, попробуйте снова! ❌")
+                    return
+            elif int(j) == 0:
+                print("Возвращаемся назад...")
+                return
+            else:
+                print()
+                print("Такая задача не существует! ❌")
+                return
+        else:
+            print()
+            print("Ошибка! Нужно ввести число, а не текст! ❌")
+            return
+
+    write_json(file_tasks_copy, s_copy)
+    write_json(file_tasks, s)
+    print(s)
+    print(s_copy)
+
+thread = threading.Thread(target=schedule_worker, daemon=True)
+thread.start()
+
+s = read_json(file_tasks)
+s_copy = read_json(file_tasks_copy)
+
+def main():
+    global s
+    global s_copy
     flag = 'not_sort'
     while True:
         while True:
             if flag == 'not_sort':
                 print()
-                question = input(
+                question = safe_input(
                     'Сортировать в дальнейшем список дел по дате и времени? \n1) Да \n2) Нет \n \nВведите цифру: ').strip()
                 if question == '1':
                     flag = 'sort'
@@ -350,99 +520,15 @@ async def main():
                 break
         print_menu()
         print()
-        num = input('Напишите цифру: ').strip()
+        num = safe_input('Напишите цифру: ').strip()
         if num.isdigit():
             if int(num) == 1:
                 print()
                 add_task() #добавляем новую задачу
             elif int(num)  == 2:
-                print()
-                if len(s) == 0:
-                    print("Список пуст! 😟")
-                else:
-                    print("Список дел 🤓:")
-                    print()
-
-                    for i in range(len(s)):
-                        print(f'{i + 1}. {s[i]['name'].capitalize()} - {s[i]['date'][0:2]}.{s[i]['date'][3:5]}.{s[i]['date'][6:]} {s[i]['time'][0:2]}:{s[i]['time'][3:]}. Периодичность: {', '.join(s[i]['period'])}')
-                    print()
-                    print("Если хотите вернуться назад, введите цифру 0.")
-                    j = input("Какую по счету задачу хотите поменять?: ").strip()
-                    print()
-                    if j.isdigit():
-                        j = int(j)
-                        print(f'Вы выбрали задачу: \n \n{j}. {s[j - 1]['name'].capitalize()} - {s[j - 1]['date'][0:2]}.{s[j - 1]['date'][3:5]}.{s[j - 1]['date'][6:]} {s[j - 1]['time'][0:2]}:{s[j - 1]['time'][3:]}. Периодичность: {', '.join(s[j - 1]['period'])}')
-                        print()
-                        if 1 <= j <= len(s):
-                            request = input(f"Что именно в задаче желаете изменить? \n1) Дату \n2) Время \n3) Название \n4) Период повторения \n5) Время, через сколько напомнить \n6) Полностью изменить задачу \n7) Вернуться назад \n \nВыберите цифру: ").strip()
-                            if request == '1':
-                                print()
-                                new_date = new_date_task("Введите новую дату в формате дд.мм.гг: ")
-                                if new_date.startswith("❌"):
-                                    print(new_date)
-                                else:
-                                    s[j - 1]['date'] = new_date
-                                    print()
-                                    print("Дата изменена ✅")
-                            elif request == '2':
-                                print()
-                                new_time = new_time_task("Введите новое время в формате дд.мм.гг: ")
-                                if new_time.startswith("❌"):
-                                    print(new_time)
-                                else:
-                                    s[j - 1]['time'] = new_time
-                                    new_notification = notification_time(s[j - 1])
-                                    print()
-                                    print("Время изменено ✅")
-                            elif request == '3':
-                                print()
-                                new_name = input('Введите новое название задачи: ').strip()
-                                s[int(j) - 1]['name'] = new_name
-                                print()
-                                print("Название изменено ✅")
-                            elif request == '4':
-                                print()
-                                new_period = new_period_task()
-                                if isinstance(new_period, str) and new_period.startswith("❌"): #если строка
-                                    print(new_period)
-                                else:
-                                    s[j - 1]['period'] = new_period
-
-                                    #сделать тут чтобы если менялся период, сначала менялось старое время(из оригинала) потом применялся новый период
-
-                                    print("Период изменен ✅")
-                            elif request == '5':
-                                print()
-                                new_notification = new_notification_task()
-                                if new_notification.startswith("❌"):
-                                    print(new_notification)
-                                else:
-                                    s[j - 1]['notification'] = new_notification
-                                    print()
-                                    print("Время напоминания изменено ✅")
-                            elif request == '6':
-                                del s[j - 1]
-                                print()
-                                add_task(name_prompt='Введите новое название задачи: ', success_message=f'Задача {j} была изменена! ✅')
-                                print()
-                            elif request == '7':
-                                print()
-                                print("Возвращаемся назад...")
-                            else:
-                                print()
-                                print("Такого варианта ответа не существует, попробуйте снова! ❌")
-                        elif int(j) == 0:
-                            print("Возвращаемся назад...")
-                        else:
-                            print()
-                            print("Такая задача не существует! ❌")
-                    else:
-                        print()
-                        print("Ошибка! Нужно ввести число, а не текст! ❌")
-
+                change_task()
             elif int(num) == 3:
                 print()
-                print(check)
                 if len(s) == 0:
                     print("Список пуст! 😟")
                 else:
@@ -459,11 +545,14 @@ async def main():
                         print(f'{i + 1}. {s[i]['name'].capitalize()} - {s[i]['date'][0:2]}.{s[i]['date'][3:5]}.{s[i]['date'][6:]} {s[i]['time'][0:2]}:{s[i]['time'][3:]}. Периодичность: {', '.join(s[i]['period'])}')
                     print()
                     print("Если хотите вернуться назад, введите цифру 0.")
-                    del_text = input("Какую задачу из списка хотите удалить?: ").strip()
+                    del_text = safe_input("Какую задачу из списка хотите удалить?: ").strip()
                     if del_text.isdigit():
                         if 1 <= int(del_text) <= len(s):
                             del s[int(del_text) - 1]
+                            del s_copy[int(del_text) - 1]
                             print()
+                            write_json(file_tasks, s)
+                            write_json(file_tasks_copy, s_copy)
                             print("Задача удалена! ✅")
                         elif int(del_text) == 0:
                             print()
@@ -475,11 +564,14 @@ async def main():
                         print("Ошибка! Нужно ввести число, а не текст! ❌")
             elif int(num)  == 5:
                 print()
-                clear_s = input("Вы уверены что хотите полностью очистить список? \n1) Да \n2) Вернуться назад \n \nВаш ответ: " ).strip()
+                clear_s = safe_input("Вы уверены что хотите полностью очистить список? \n1) Да \n2) Вернуться назад \n \nВаш ответ: " ).strip()
                 print()
                 if clear_s == "1":
                     if len(s) >= 1:
                         s.clear()
+                        s_copy.clear()
+                        write_json(file_tasks, s)
+                        write_json(file_tasks_copy, s_copy)
                         print('Список был очищен! ✅')
                     else:
                         print("Список уже пуст! 👌")
@@ -488,7 +580,7 @@ async def main():
                 else:
                     print('Нет такого варианта ответа! ❌')
             elif int(num) == 6:
-                question = input('Сортировать в дальнейшем список дел по дате и времени? \n1) Да \n2) Нет \n \nВведите цифру: ').strip()
+                question = safe_input('Сортировать в дальнейшем список дел по дате и времени? \n1) Да \n2) Нет \n \nВведите цифру: ').strip()
                 if question == '1':
                     flag = 'sort'
                 elif question == '2':
@@ -504,5 +596,4 @@ async def main():
             print()
             print("Ошибка! Нужно ввести число, а не текст! ❌")
 
-
-asyncio.run(main())
+main()
