@@ -59,7 +59,7 @@ def safe_input(prompt):
             print(f"🔔 Уведомление о задаче: {name}")
         print()
         NOTIFY_BUFFER = []  #  очищаем буфер
-
+    print()
     return text
 
 def new_date_task(prompt = 'Введите дату задачи в формате дд.мм.гг: '):
@@ -100,16 +100,15 @@ def new_period_task():
         for c in period:
             if c not in ('0', '1'):
                 return "❌ Ошибка, введите число 1 или 0. Пример: 0101010"
-        print()
         days = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс']
         period_day = [days[k] for k in range(7) if period[k] == '1']
-        result = period_day.append(period)
+        period_day.append(period) # пример: ['пн', 'вт', 'ср', '1110000']
         if len(period_day) >= 1:
-            return result
+            return period_day
         else:
             return ['без повторений.']
     else:
-        return "❌ Длина периода должна равняться 7 и он должен быть числом! Пример: 0101010"
+        return "❌ Длина периода должна равняться 7 и он должен быть числом! Пример: 0101011 "
 
 def new_notification_task():
     notification = safe_input('Введите время за которое нужно уведомить о задаче: \n1) 10 минут \n2) 30 минут \n3) 1 час \n4) 2 часа \n \nНапишите цифру: ').strip()  # тут нужно реализовать
@@ -372,7 +371,6 @@ def schedule_worker():
         time.sleep(1)
 
 def change_task():
-    print()
     global s
     global s_copy
     if len(s) == 0:
@@ -385,18 +383,24 @@ def change_task():
                 f'{i + 1}. {s[i]['name'].capitalize()} - {s[i]['date'][0:2]}.{s[i]['date'][3:5]}.{s[i]['date'][6:]} {s[i]['time'][0:2]}:{s[i]['time'][3:]}. Периодичность: {', '.join(s[i]['period'])}')
         print()
         print("Если хотите вернуться назад, введите цифру 0.")
-        j = safe_input("Какую по счету задачу хотите поменять?: ").strip()
         print()
+        j = safe_input("Какую по счету задачу хотите поменять?: ").strip()
         if j.isdigit():
             j = int(j)
+            if int(j) == 0:
+                print("Возвращаемся назад...")
+                return
+            if 1 > j or j > len(s):
+                print("Такая задача не существует! ❌")
+                return
             print(
                 f'Вы выбрали задачу: \n \n{j}. {s[j - 1]['name'].capitalize()} - {s[j - 1]['date'][0:2]}.{s[j - 1]['date'][3:5]}.{s[j - 1]['date'][6:]} {s[j - 1]['time'][0:2]}:{s[j - 1]['time'][3:]}. Периодичность: {', '.join(s[j - 1]['period'])}')
             print()
+
             if 1 <= j <= len(s):
                 request = safe_input(
                     f"Что именно в задаче желаете изменить? \n1) Дату \n2) Время \n3) Название \n4) Период повторения \n5) Время, через сколько напомнить \n6) Полностью изменить задачу \n7) Вернуться назад \n \nВыберите цифру: ").strip()
                 if request == '1':
-                    print()
                     new_date = new_date_task("Введите новую дату в формате дд.мм.гг: ")
                     if new_date.startswith("❌"):
                         print(new_date)
@@ -404,10 +408,9 @@ def change_task():
                     else:
                         s[j - 1]['date'] = new_date
                         s_copy[j - 1]['date'] = new_date
-                        print()
                         print("Дата изменена ✅")
                 elif request == '2':
-                    print()
+
                     new_time = new_time_task("Введите новое время в формате чч:мм: ")
                     if new_time.startswith("❌"):
                         print(new_time)
@@ -416,27 +419,25 @@ def change_task():
                         s[j - 1]['time'] = new_time
                         s_copy[j - 1]['time'] = new_time
                         notification_time(s_copy[j - 1]) #меняет напоминание по новому времени
-                        print()
+
                         print("Время изменено ✅")
                 elif request == '3':
-                    print()
                     new_name = safe_input('Введите новое название задачи: ').strip()
                     s[int(j) - 1]['name'] = new_name
                     s_copy[int(j) - 1]['name'] = new_name
-                    print()
                     print("Название изменено ✅")
                 elif request == '4':
-                    print()
-                    new_period = new_period_task()[:-1]
-                    new_period_raw = new_period_task()[-1]
+                    new_periods = new_period_task()
+                    new_period = new_periods[:-1]
+                    new_period_raw = new_periods[-1]
                     if isinstance(new_period, str) and new_period.startswith("❌"):  # если строка
                         print(new_period)
                         return
                     else:
                         s[j - 1]['period'] = new_period
                         s_copy[j - 1]['period'] = new_period
-                        s[j - 1]['period_raw'] = new_period_raw #тут неправильно записывается переменная, нужно в числах
-                        s_copy[j - 1]['period_raw'] = new_period_raw #тут неправильно записывается переменная, нужно в числах
+                        s[j - 1]['period_raw'] = new_period_raw
+                        s_copy[j - 1]['period_raw'] = new_period_raw
 
                         # сделать тут чтобы если менялся период, сначала менялось старое время(из оригинала) потом применялся новый период\ хз зачем, пока пусть висит
 
@@ -468,13 +469,7 @@ def change_task():
                     print()
                     print("Такого варианта ответа не существует, попробуйте снова! ❌")
                     return
-            elif int(j) == 0:
-                print("Возвращаемся назад...")
-                return
-            else:
-                print()
-                print("Такая задача не существует! ❌")
-                return
+
         else:
             print()
             print("Ошибка! Нужно ввести число, а не текст! ❌")
@@ -482,8 +477,6 @@ def change_task():
 
     write_json(file_tasks_copy, s_copy)
     write_json(file_tasks, s)
-    print(s)
-    print(s_copy)
 
 thread = threading.Thread(target=schedule_worker, daemon=True)
 thread.start()
@@ -491,109 +484,124 @@ thread.start()
 s = read_json(file_tasks)
 s_copy = read_json(file_tasks_copy)
 
-def main():
-    global s
-    global s_copy
-    flag = 'not_sort'
-    while True:
+try:
+    def main():
+        global s
+        global s_copy
+        flag = 'not_sort'
         while True:
-            if flag == 'not_sort':
-                print()
-                question = safe_input(
-                    'Сортировать в дальнейшем список дел по дате и времени? \n1) Да \n2) Нет \n \nВведите цифру: ').strip()
-                if question == '1':
-                    flag = 'sort'
+            while True:
+                if flag == 'not_sort':
                     print()
-                    print('Список ваших задач будет сортироваться!')
-                    break
-                elif question == '2':
-                    flag = 'stop_sort'
-                    print()
-                    print('Список ваших задач не будет сортироваться!')
-                    break
-                else:
-                    print()
-                    print('❌ Ошибка! Нет такого варианта ответа')
-            if flag == 'sort':
-                s = sorted(s, key=lambda x: (int(x['date'][6:]), int(x['date'][3:5]), int(x['date'][0:2]),
-                                             int(x['time'][0:2]), int(x['time'][3:])))
-                break
-        print_menu()
-        print()
-        num = safe_input('Напишите цифру: ').strip()
-        if num.isdigit():
-            if int(num) == 1:
-                print()
-                add_task() #добавляем новую задачу
-            elif int(num)  == 2:
-                change_task()
-            elif int(num) == 3:
-                print()
-                if len(s) == 0:
-                    print("Список пуст! 😟")
-                else:
-                    print("Список дел 🤓:")
-                    for i in range(len(s)):
-                        print(f'{i + 1}. {s[i]['name'].capitalize()} - {s[i]['date'][0:2]}.{s[i]['date'][3:5]}.{s[i]['date'][6:]} {s[i]['time'][0:2]}:{s[i]['time'][3:]}. Периодичность: {', '.join(s[i]['period'])}')
-            elif int(num)  == 4:
-                print()
-                if len(s) == 0:
-                    print("Список уже пуст! 😟")
-                else:
-                    print("Список дел 🤓:")
-                    for i in range(len(s)):
-                        print(f'{i + 1}. {s[i]['name'].capitalize()} - {s[i]['date'][0:2]}.{s[i]['date'][3:5]}.{s[i]['date'][6:]} {s[i]['time'][0:2]}:{s[i]['time'][3:]}. Периодичность: {', '.join(s[i]['period'])}')
-                    print()
-                    print("Если хотите вернуться назад, введите цифру 0.")
-                    del_text = safe_input("Какую задачу из списка хотите удалить?: ").strip()
-                    if del_text.isdigit():
-                        if 1 <= int(del_text) <= len(s):
-                            del s[int(del_text) - 1]
-                            del s_copy[int(del_text) - 1]
-                            print()
-                            write_json(file_tasks, s)
-                            write_json(file_tasks_copy, s_copy)
-                            print("Задача удалена! ✅")
-                        elif int(del_text) == 0:
-                            print()
-                            print("Возвращаемся назад...")
-                        else:
-                            print("Такая задача не существует! ❌")
+                    question = safe_input(
+                        'Сортировать в дальнейшем список дел по дате и времени? \n1) Да \n2) Нет \n \nВведите цифру: ').strip()
+                    if question == '1':
+                        flag = 'sort'
+                        print('Список ваших задач будет сортироваться!')
+                        break
+                    elif question == '2':
+                        flag = 'stop_sort'
+                        print('Список ваших задач не будет сортироваться!')
+                        break
                     else:
                         print()
-                        print("Ошибка! Нужно ввести число, а не текст! ❌")
-            elif int(num)  == 5:
-                print()
-                clear_s = safe_input("Вы уверены что хотите полностью очистить список? \n1) Да \n2) Вернуться назад \n \nВаш ответ: " ).strip()
-                print()
-                if clear_s == "1":
-                    if len(s) >= 1:
-                        s.clear()
-                        s_copy.clear()
-                        write_json(file_tasks, s)
-                        write_json(file_tasks_copy, s_copy)
-                        print('Список был очищен! ✅')
-                    else:
-                        print("Список уже пуст! 👌")
-                elif clear_s == "2":
-                    print("Возвращаемся назад...")
-                else:
+                        print('❌ Ошибка! Нет такого варианта ответа')
+                elif flag == 'sort':
+                    s = sorted(s, key=lambda x: (int(x['date'][6:]), int(x['date'][3:5]), int(x['date'][0:2]),
+                                                 int(x['time'][0:2]), int(x['time'][3:])))
+                    s_copy = sorted(s_copy, key=lambda x: (int(x['date'][6:]), int(x['date'][3:5]), int(x['date'][0:2]),
+                                                 int(x['time'][0:2]), int(x['time'][3:])))
+                    break
+    
+                elif flag == 'stop_sort':
+                    break
+                elif flag == 'stop_sort_fake':
                     print('Нет такого варианта ответа! ❌')
-            elif int(num) == 6:
-                question = safe_input('Сортировать в дальнейшем список дел по дате и времени? \n1) Да \n2) Нет \n \nВведите цифру: ').strip()
-                if question == '1':
-                    flag = 'sort'
-                elif question == '2':
                     flag = 'stop_sort'
-            elif int(num)  == 0:
-                print()
-                print("До свидания! 👋")
-                break
+                    break
+                elif flag == 'sort_fake':
+                    print('Нет такого варианта ответа! ❌')
+                    flag = 'sort'
+                    break
+            print_menu()
+            print()
+            num = safe_input('Напишите цифру: ').strip()
+            if num.isdigit():
+                if int(num) == 1:
+                    add_task() #добавляем новую задачу
+                elif int(num)  == 2:
+                    change_task() #изменение задачи
+                elif int(num) == 3: #вывести задачу
+                    if len(s) == 0:
+                        print("Список пуст! 😟")
+                    else:
+                        print("Список дел 🤓:")
+                        for i in range(len(s)):
+                            print(f'{i + 1}. {s[i]['name'].capitalize()} - {s[i]['date'][0:2]}.{s[i]['date'][3:5]}.{s[i]['date'][6:]} {s[i]['time'][0:2]}:{s[i]['time'][3:]}. Периодичность: {', '.join(s[i]['period'])}')
+                elif int(num)  == 4: #удаление задачи
+                    if len(s) == 0:
+                        print("В списке нет задач! 😟")
+                    else:
+                        print("Список дел 🤓:")
+                        for i in range(len(s)):
+                            print(f'{i + 1}. {s[i]['name'].capitalize()} - {s[i]['date'][0:2]}.{s[i]['date'][3:5]}.{s[i]['date'][6:]} {s[i]['time'][0:2]}:{s[i]['time'][3:]}. Периодичность: {', '.join(s[i]['period'])}')
+                        print()
+                        print("Если хотите вернуться назад, введите цифру 0.")
+                        print()
+                        del_text = safe_input("Какую задачу из списка хотите удалить?: ").strip()
+                        if del_text.isdigit():
+                            if 1 <= int(del_text) <= len(s):
+                                del s[int(del_text) - 1]
+                                del s_copy[int(del_text) - 1]
+                                print()
+                                write_json(file_tasks, s)
+                                write_json(file_tasks_copy, s_copy)
+                                print("Задача удалена! ✅")
+                            elif int(del_text) == 0:
+                                print("Возвращаемся назад...")
+                            else:
+                                print("Такая задача не существует! ❌")
+                        else:
+                            print()
+                            print("Ошибка! Нужно ввести число, а не текст! ❌")
+                elif int(num)  == 5: #очистить список задач
+                    clear_s = safe_input("Вы уверены что хотите полностью очистить список? \n1) Да \n2) Вернуться назад \n \nВаш ответ: " ).strip()
+    
+                    if clear_s == "1":
+                        if len(s) >= 1:
+                            s.clear()
+                            s_copy.clear()
+                            write_json(file_tasks, s)
+                            write_json(file_tasks_copy, s_copy)
+                            print('Список был очищен! ✅')
+                        else:
+                            print("Список уже пуст! 👌")
+                    elif clear_s == "2":
+                        print("Возвращаемся назад...")
+                    else:
+                        print('Нет такого варианта ответа! ❌')
+                elif int(num) == 6:
+                    question = safe_input('Сортировать в дальнейшем список дел по дате и времени? \n1) Да \n2) Нет \n \nВведите цифру: ').strip()
+                    if question == '1':
+                        flag = 'sort'
+                        print('Список ваших задач теперь будет сортироваться!')
+                    elif question == '2':
+                        flag = 'stop_sort'
+                        print('Список ваших задач больше не будет сортироваться!')
+                    else:
+                        if flag == 'stop_sort':
+                            flag = 'stop_sort_fake'
+                        else:
+                            flag = 'sort_fake'
+                elif int(num)  == 0:
+                    print("До свидания! 👋")
+                    break
+                else:
+                    print()
+                    print("Команда не существует ❌")
             else:
                 print()
-                print("Команда не существует ❌")
-        else:
-            print()
-            print("Ошибка! Нужно ввести число, а не текст! ❌")
-
+                print("Ошибка! Нужно ввести число, а не текст! ❌")
+except Exception:
+    print('Произошла ошибка!')
 main()
